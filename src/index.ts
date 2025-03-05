@@ -73,37 +73,164 @@ function isVue3Element(el: Element): el is Vue3Element {
   return "__vueParentComponent" in el;
 }
 
-function findComponentInstance(
-  el: Element
-): { instance: ComponentInstance; line?: number } | null {
-  // Vue 3
-  if (isVue3Element(el) && el.__vueParentComponent) {
-    let parent = el.__vueParentComponent;
-    while (parent) {
-      if (parent?.type?.__file) {
-        // 尝试获取组件定义的行号
-        const line = parent.type.__loc?.start?.line;
-        return {
-          instance: parent as unknown as ComponentInstance,
-          line: line,
-        };
+function findTextNodeLine(node: Element, clickY: number): number | undefined {
+  // 检查节点本身是否有行号信息
+  const sourceLine = (node as any)?.__source?.start?.line;
+
+  // 如果是文本节点的父节点，检查其子节点
+  if (node.childNodes.length > 0) {
+    let closestLine: number | undefined;
+    let minDistance = Infinity;
+
+    // 遍历所有子节点
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType === Node.TEXT_NODE && child.textContent?.trim()) {
+        // 获取文本节点的位置信息
+        const rect = (child as any).getBoundingClientRect?.();
+        if (rect) {
+          const distance = Math.abs(rect.top + rect.height / 2 - clickY);
+          const textLine = (child as any)?.__source?.start?.line;
+
+          // 更新最近的行号
+          if (textLine && distance < minDistance) {
+            minDistance = distance;
+            closestLine = textLine;
+          }
+        }
       }
-      if (!parent?.parent) break;
-      parent = parent.parent;
+    }
+
+    if (closestLine !== undefined) {
+      return closestLine;
     }
   }
 
-  // Vue 2
-  if (isVue2Element(el) && el.__vue__) {
-    const instance = el.__vue__;
-    const line = instance.$options?.__loc?.start?.line;
-    return {
-      instance,
-      line,
-    };
+  return sourceLine;
+}
+
+function findComponentInstance(
+  el: Element,
+  clickY: number
+): { instance: ComponentInstance; line?: number } | null {
+  // 从当前元素开始向上遍历，找到所有可能的组件实例
+  let currentEl: Element | null = el;
+  const instances: {
+    instance: ComponentInstance;
+    line?: number;
+    depth: number;
+    textLine?: number;
+    distance?: number;
+    isThirdParty?: boolean;
+  }[] = [];
+  let depth = 0;
+
+  // 检查是否为第三方组件
+  const isThirdPartyComponent = (file?: string) => {
+    if (!file) return false;
+    return file.includes("node_modules");
+  };
+
+  // 获取组件在模板中的位置
+  const findTemplateLocation = (node: Element): number | undefined => {
+    // 检查元素本身的位置信息
+    const loc = (node as any)?.__vnode?.loc?.start?.line;
+    if (loc) return loc;
+
+    // 检查组件的渲染函数位置
+    const renderLoc = (node as any)?.__vnode?.componentOptions?.Ctor?.options
+      ?.__file;
+    if (renderLoc) {
+      const match = renderLoc.match(/:(\d+)$/);
+      if (match) return parseInt(match[1], 10);
+    }
+
+    return undefined;
+  };
+
+  while (currentEl) {
+    const rect = currentEl.getBoundingClientRect();
+    const distance = Math.abs(rect.top + rect.height / 2 - clickY);
+
+    // Vue 3
+    if (isVue3Element(currentEl) && currentEl.__vueParentComponent) {
+      let parent = currentEl.__vueParentComponent;
+      while (parent) {
+        if (parent?.type?.__file) {
+          const textLine = findTextNodeLine(currentEl, clickY);
+          const templateLine = findTemplateLocation(currentEl);
+          const file = parent.type.__file;
+
+          instances.push({
+            instance: parent as unknown as ComponentInstance,
+            line: templateLine || parent.type.__loc?.start?.line,
+            textLine: textLine,
+            depth: depth,
+            distance: distance,
+            isThirdParty: isThirdPartyComponent(file),
+          });
+        }
+        if (!parent?.parent) break;
+        parent = parent.parent;
+        depth++;
+      }
+    }
+
+    // Vue 2
+    if (isVue2Element(currentEl) && currentEl.__vue__) {
+      const instance = currentEl.__vue__;
+      const textLine = findTextNodeLine(currentEl, clickY);
+      const templateLine = findTemplateLocation(currentEl);
+      const file = instance.__file || instance.$options?.__file;
+
+      instances.push({
+        instance,
+        line: templateLine || instance.$options?.__loc?.start?.line,
+        textLine: textLine,
+        depth: depth,
+        distance: distance,
+        isThirdParty: isThirdPartyComponent(file),
+      });
+    }
+
+    currentEl = currentEl.parentElement;
+    depth++;
   }
 
-  return null;
+  // 如果没有找到任何实例，返回null
+  if (instances.length === 0) {
+    return null;
+  }
+
+  // 首先按深度排序，然后按是否为第三方组件排序，最后按距离排序
+  instances.sort((a, b) => {
+    if (a.depth !== b.depth) {
+      return a.depth - b.depth;
+    }
+    // 优先选择非第三方组件
+    if (a.isThirdParty !== b.isThirdParty) {
+      return a.isThirdParty ? 1 : -1;
+    }
+    return (a.distance || Infinity) - (b.distance || Infinity);
+  });
+
+  // 过滤掉没有文件路径的实例
+  const validInstances = instances.filter(
+    (item) =>
+      item.instance.__file ||
+      item.instance.type?.__file ||
+      item.instance.$options?.__file
+  );
+
+  if (validInstances.length === 0) {
+    return null;
+  }
+
+  // 返回最内层的有效实例，优先使用文本行号
+  const result = validInstances[0];
+  return {
+    instance: result.instance,
+    line: result.textLine || result.line, // 优先使用文本行号
+  };
 }
 
 function setTarget(el: Element, type = "") {
@@ -150,16 +277,22 @@ function openEditor(sourceCodeLocation: string, line?: number) {
     return;
   }
 
-  let fileUrl = sourceCodeLocation.startsWith("/")
-    ? `${editorConfig.protocol}${sourceCodeLocation}`
-    : `${editorConfig.protocol}/${sourceCodeLocation}`;
+  // 确保路径是绝对路径
+  const absolutePath = sourceCodeLocation.startsWith("/")
+    ? sourceCodeLocation
+    : `/${sourceCodeLocation}`;
 
-  // 添加行号
+  let fileUrl = `${editorConfig.protocol}${absolutePath}`;
+
+  // 添加行号（根据不同编辑器使用不同格式）
   if (line) {
-    fileUrl += `:${line}`;
+    if (editorConfig.name.toLowerCase() === "vscode") {
+      fileUrl += `:${line}`;
+    } else if (editorConfig.name.toLowerCase() === "cursor") {
+      fileUrl += `:${line}:1`; // Cursor需要列号，我们默认使用1
+    }
   }
 
-  console.log("[Click2Component] 打开文件:", fileUrl);
   openWithProtocol(fileUrl);
 }
 
@@ -185,10 +318,47 @@ const HIGHLIGHT_STYLE = `
   [vue-click-to-component-target="hover"] {
     outline-style: dashed !important;
   }
+
+  .click2component-path-tooltip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.75);
+    border-radius: 0 0 4px 0;
+    z-index: 9999;
+    font-family: monospace;
+    font-size: 12px;
+    color: #fff;
+    pointer-events: none !important;
+    max-width: 800px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+
+  .click2component-path-tooltip .path-middle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 20px;
+  }
+
+  .click2component-path-tooltip .path-end {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+  }
 </style>`;
 
 let overlay: HTMLDivElement | null = null;
 let selectedEditor: string | null = null;
+let pathTooltip: HTMLDivElement | null = null;
 
 function createOverlay() {
   if (overlay) return overlay;
@@ -280,11 +450,37 @@ function toggleOverlay(show: boolean) {
   overlay.style.display = show ? "flex" : "none";
 }
 
-function handleMouseMove(e: MouseEvent, options: Options) {
-  if (!options.enabled) {
-    console.log("[Click2Component] 功能未启用");
-    return;
+function showPathTooltip(componentFile: string | undefined) {
+  if (!pathTooltip) {
+    pathTooltip = document.createElement("div");
+    pathTooltip.className = "click2component-path-tooltip";
+    document.body.appendChild(pathTooltip);
   }
+
+  if (componentFile) {
+    // 分割路径，保留最后一部分
+    const parts = componentFile.split("/");
+    const fileName = parts.pop() || "";
+    const dirPath = parts.join("/");
+
+    pathTooltip.innerHTML = `
+      <span class="path-middle">${dirPath}/</span>
+      <span class="path-end">${fileName}</span>
+    `;
+    pathTooltip.style.display = "flex";
+  } else {
+    pathTooltip.style.display = "none";
+  }
+}
+
+function hidePathTooltip() {
+  if (pathTooltip) {
+    pathTooltip.style.display = "none";
+  }
+}
+
+function handleMouseMove(e: MouseEvent, options: Options) {
+  if (!options.enabled) return;
 
   cleanTarget("hover");
 
@@ -301,22 +497,23 @@ function handleMouseMove(e: MouseEvent, options: Options) {
 
   if (!isKeyPressed) {
     document.body.removeAttribute("vue-click-to-component");
+    hidePathTooltip();
     return;
   }
 
   document.body.setAttribute("vue-click-to-component", "");
   const target = e.target as Element;
-  const result = findComponentInstance(target);
+  const result = findComponentInstance(target, e.clientY);
 
   if (result) {
-    const { instance, line } = result;
+    const { instance } = result;
     setTarget(target, "hover");
-    console.log("[Click2Component] 已高亮组件元素:", {
-      element: target.tagName,
-      componentFile:
-        instance.__file || instance.type?.__file || instance.$options?.__file,
-      line: line,
-    });
+    const componentFile =
+      instance.__file || instance.type?.__file || instance.$options?.__file;
+
+    showPathTooltip(componentFile);
+  } else {
+    hidePathTooltip();
   }
 }
 
@@ -345,7 +542,7 @@ function handleClick(e: MouseEvent, options: Options) {
   if (!isKeyPressed || e?.button !== 0) return;
 
   const target = e.target as Element;
-  const result = findComponentInstance(target);
+  const result = findComponentInstance(target, e.clientY);
 
   if (!result) return;
 
@@ -357,35 +554,25 @@ function handleClick(e: MouseEvent, options: Options) {
   const sourceCodeLocation =
     instance.__file || instance.type?.__file || instance.$options?.__file;
 
-  console.log("[Click2Component] 点击处理:", {
-    element: target.tagName,
-    componentFile: sourceCodeLocation,
-    line: line,
-  });
-
   if (sourceCodeLocation) {
+    console.log("[Click2Component] 跳转到:", {
+      file: sourceCodeLocation,
+      line: line,
+    });
     openEditor(sourceCodeLocation, line);
   }
 }
 
 function install(app: App, options: Options = {}) {
-  console.log("[Click2Component] 初始化插件，配置:", options);
-
   const finalOptions = { ...defaultOptions, ...options };
-  console.log("[Click2Component] 最终配置:", finalOptions);
 
-  if (!finalOptions.enabled) {
-    console.log("[Click2Component] 插件未启用");
-    return;
-  }
+  if (!finalOptions.enabled) return;
 
   let initialized = false;
   const initialize = () => {
     if (initialized) return;
 
-    // 添加高亮样式
     document.head.insertAdjacentHTML("beforeend", HIGHLIGHT_STYLE);
-    console.log("[Click2Component] 已添加高亮样式");
 
     const clickHandler = (e: MouseEvent) => handleClick(e, finalOptions);
     const mouseMoveHandler = (e: MouseEvent) =>
@@ -393,9 +580,7 @@ function install(app: App, options: Options = {}) {
 
     document.addEventListener("click", clickHandler, true);
     document.addEventListener("mousemove", mouseMoveHandler, true);
-    console.log("[Click2Component] 已添加事件监听器");
 
-    // 修改键盘事件监听，支持自定义键位
     window.addEventListener("keyup", (e) => {
       const isKeyPressed =
         finalOptions.key === "Alt" || finalOptions.key === "Option"
@@ -417,28 +602,22 @@ function install(app: App, options: Options = {}) {
     window.addEventListener("blur", () => {
       cleanTarget();
       document.body.removeAttribute("vue-click-to-component");
+      hidePathTooltip();
     });
 
     initialized = true;
   };
 
-  // 初始化
   initialize();
 
   app.mixin({
     mounted() {
-      // 确保在每次组件挂载时都重新初始化
       initialize();
-    },
-    unmounted() {
-      // 不需要在unmounted时移除事件监听器，因为我们希望它们持续存在
     },
   });
 
-  // 监听路由变化（适用于 vue-router 4.x）
   if (app.config.globalProperties.$router) {
     app.config.globalProperties.$router.afterEach(() => {
-      // 确保在路由变化后重新初始化
       setTimeout(initialize, 0);
     });
   }
