@@ -76,6 +76,7 @@ function isVue3Element(el: Element): el is Vue3Element {
 function findTextNodeLine(node: Element, clickY: number): number | undefined {
   // 检查节点本身是否有行号信息
   const sourceLine = (node as any)?.__source?.start?.line;
+  const vueSourceLine = (node as any)?.__vnode?.loc?.start?.line;
 
   // 如果是文本节点的父节点，检查其子节点
   if (node.childNodes.length > 0) {
@@ -84,18 +85,24 @@ function findTextNodeLine(node: Element, clickY: number): number | undefined {
 
     // 遍历所有子节点
     for (const child of Array.from(node.childNodes)) {
-      if (child.nodeType === Node.TEXT_NODE && child.textContent?.trim()) {
-        // 获取文本节点的位置信息
-        const rect = (child as any).getBoundingClientRect?.();
-        if (rect) {
-          const distance = Math.abs(rect.top + rect.height / 2 - clickY);
-          const textLine = (child as any)?.__source?.start?.line;
+      // 获取节点的位置信息
+      const rect = (child as any).getBoundingClientRect?.();
+      if (rect) {
+        const distance = Math.abs(rect.top + rect.height / 2 - clickY);
+        let textLine: number | undefined;
 
-          // 更新最近的行号
-          if (textLine && distance < minDistance) {
-            minDistance = distance;
-            closestLine = textLine;
-          }
+        if (child.nodeType === Node.TEXT_NODE && child.textContent?.trim()) {
+          // 文本节点
+          textLine = (child as any)?.__source?.start?.line;
+        } else if (child.nodeType === Node.ELEMENT_NODE) {
+          // 元素节点
+          textLine = (child as any)?.__vnode?.loc?.start?.line;
+        }
+
+        // 更新最近的行号
+        if (textLine && distance < minDistance) {
+          minDistance = distance;
+          closestLine = textLine;
         }
       }
     }
@@ -105,7 +112,7 @@ function findTextNodeLine(node: Element, clickY: number): number | undefined {
     }
   }
 
-  return sourceLine;
+  return vueSourceLine || sourceLine;
 }
 
 function findComponentInstance(
@@ -451,31 +458,35 @@ function toggleOverlay(show: boolean) {
 }
 
 function showPathTooltip(componentFile: string | undefined) {
-  if (!pathTooltip) {
-    pathTooltip = document.createElement("div");
-    pathTooltip.className = "click2component-path-tooltip";
-    document.body.appendChild(pathTooltip);
+  // 如果已经存在提示框，先移除它
+  if (pathTooltip) {
+    pathTooltip.remove();
+    pathTooltip = null;
   }
 
-  if (componentFile) {
-    // 分割路径，保留最后一部分
-    const parts = componentFile.split("/");
-    const fileName = parts.pop() || "";
-    const dirPath = parts.join("/");
+  if (!componentFile) return;
 
-    pathTooltip.innerHTML = `
-      <span class="path-middle">${dirPath}/</span>
-      <span class="path-end">${fileName}</span>
-    `;
-    pathTooltip.style.display = "flex";
-  } else {
-    pathTooltip.style.display = "none";
-  }
+  // 创建新的提示框
+  pathTooltip = document.createElement("div");
+  pathTooltip.className = "click2component-path-tooltip";
+
+  // 分割路径，保留最后一部分
+  const parts = componentFile.split("/");
+  const fileName = parts.pop() || "";
+  const dirPath = parts.join("/");
+
+  pathTooltip.innerHTML = `
+    <span class="path-middle">${dirPath}/</span>
+    <span class="path-end">${fileName}</span>
+  `;
+
+  document.body.appendChild(pathTooltip);
 }
 
 function hidePathTooltip() {
   if (pathTooltip) {
-    pathTooltip.style.display = "none";
+    pathTooltip.remove();
+    pathTooltip = null;
   }
 }
 
@@ -507,11 +518,13 @@ function handleMouseMove(e: MouseEvent, options: Options) {
 
   if (result) {
     const { instance } = result;
-    setTarget(target, "hover");
     const componentFile =
       instance.__file || instance.type?.__file || instance.$options?.__file;
 
-    showPathTooltip(componentFile);
+    setTarget(target, "hover");
+    if (componentFile) {
+      showPathTooltip(componentFile);
+    }
   } else {
     hidePathTooltip();
   }
@@ -557,7 +570,7 @@ function handleClick(e: MouseEvent, options: Options) {
   if (sourceCodeLocation) {
     console.log("[Click2Component] 跳转到:", {
       file: sourceCodeLocation,
-      line: line,
+      line: line || 1,
     });
     openEditor(sourceCodeLocation, line);
   }
@@ -581,7 +594,7 @@ function install(app: App, options: Options = {}) {
     document.addEventListener("click", clickHandler, true);
     document.addEventListener("mousemove", mouseMoveHandler, true);
 
-    window.addEventListener("keyup", (e) => {
+    window.addEventListener("keydown", (e) => {
       const isKeyPressed =
         finalOptions.key === "Alt" || finalOptions.key === "Option"
           ? e.altKey
@@ -594,9 +607,14 @@ function install(app: App, options: Options = {}) {
           : e.altKey;
 
       if (!isKeyPressed) {
-        cleanTarget();
-        document.body.removeAttribute("vue-click-to-component");
+        hidePathTooltip();
       }
+    });
+
+    window.addEventListener("keyup", () => {
+      cleanTarget();
+      document.body.removeAttribute("vue-click-to-component");
+      hidePathTooltip();
     });
 
     window.addEventListener("blur", () => {

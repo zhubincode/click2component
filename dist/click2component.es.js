@@ -1,4 +1,4 @@
-const C = [
+const L = [
   { name: "VS Code", protocol: "vscode://file", icon: "📝" },
   { name: "Cursor", protocol: "cursor://file", icon: "✨" }
 ], S = "click2component_editor", D = {
@@ -13,86 +13,86 @@ function B(t) {
   return "__vueParentComponent" in t;
 }
 function I(t, e) {
-  var o, c, s, a, i, p;
-  const n = (c = (o = t == null ? void 0 : t.__source) == null ? void 0 : o.start) == null ? void 0 : c.line;
+  var c, s, a, l, p, h, v, k, x, b, w, E;
+  const n = (s = (c = t == null ? void 0 : t.__source) == null ? void 0 : c.start) == null ? void 0 : s.line, i = (p = (l = (a = t == null ? void 0 : t.__vnode) == null ? void 0 : a.loc) == null ? void 0 : l.start) == null ? void 0 : p.line;
   if (t.childNodes.length > 0) {
-    let m, x = 1 / 0;
-    for (const u of Array.from(t.childNodes))
-      if (u.nodeType === Node.TEXT_NODE && ((s = u.textContent) != null && s.trim())) {
-        const _ = (a = u.getBoundingClientRect) == null ? void 0 : a.call(u);
-        if (_) {
-          const b = Math.abs(_.top + _.height / 2 - e), w = (p = (i = u == null ? void 0 : u.__source) == null ? void 0 : i.start) == null ? void 0 : p.line;
-          w && b < x && (x = b, m = w);
-        }
+    let r, d = 1 / 0;
+    for (const o of Array.from(t.childNodes)) {
+      const m = (h = o.getBoundingClientRect) == null ? void 0 : h.call(o);
+      if (m) {
+        const y = Math.abs(m.top + m.height / 2 - e);
+        let u;
+        o.nodeType === Node.TEXT_NODE && ((v = o.textContent) != null && v.trim()) ? u = (x = (k = o == null ? void 0 : o.__source) == null ? void 0 : k.start) == null ? void 0 : x.line : o.nodeType === Node.ELEMENT_NODE && (u = (E = (w = (b = o == null ? void 0 : o.__vnode) == null ? void 0 : b.loc) == null ? void 0 : w.start) == null ? void 0 : E.line), u && y < d && (d = y, r = u);
       }
-    if (m !== void 0)
-      return m;
+    }
+    if (r !== void 0)
+      return r;
   }
-  return n;
+  return i || n;
 }
-function M(t, e) {
-  var m, x, u, _, b, w, T;
+function N(t, e) {
+  var h, v, k, x, b, w, E;
   let n = t;
-  const o = [];
+  const i = [];
   let c = 0;
-  const s = (l) => l ? l.includes("node_modules") : !1, a = (l) => {
-    var h, g, v, P, K, $, O;
-    const f = (v = (g = (h = l == null ? void 0 : l.__vnode) == null ? void 0 : h.loc) == null ? void 0 : g.start) == null ? void 0 : v.line;
-    if (f)
-      return f;
-    const r = (O = ($ = (K = (P = l == null ? void 0 : l.__vnode) == null ? void 0 : P.componentOptions) == null ? void 0 : K.Ctor) == null ? void 0 : $.options) == null ? void 0 : O.__file;
-    if (r) {
-      const A = r.match(/:(\d+)$/);
+  const s = (r) => r ? r.includes("node_modules") : !1, a = (r) => {
+    var m, y, u, P, K, $, O;
+    const d = (u = (y = (m = r == null ? void 0 : r.__vnode) == null ? void 0 : m.loc) == null ? void 0 : y.start) == null ? void 0 : u.line;
+    if (d)
+      return d;
+    const o = (O = ($ = (K = (P = r == null ? void 0 : r.__vnode) == null ? void 0 : P.componentOptions) == null ? void 0 : K.Ctor) == null ? void 0 : $.options) == null ? void 0 : O.__file;
+    if (o) {
+      const A = o.match(/:(\d+)$/);
       if (A)
         return parseInt(A[1], 10);
     }
   };
   for (; n; ) {
-    const l = n.getBoundingClientRect(), f = Math.abs(l.top + l.height / 2 - e);
+    const r = n.getBoundingClientRect(), d = Math.abs(r.top + r.height / 2 - e);
     if (B(n) && n.__vueParentComponent) {
-      let r = n.__vueParentComponent;
-      for (; r; ) {
-        if ((m = r == null ? void 0 : r.type) != null && m.__file) {
-          const h = I(n, e), g = a(n), v = r.type.__file;
-          o.push({
-            instance: r,
-            line: g || ((u = (x = r.type.__loc) == null ? void 0 : x.start) == null ? void 0 : u.line),
-            textLine: h,
+      let o = n.__vueParentComponent;
+      for (; o; ) {
+        if ((h = o == null ? void 0 : o.type) != null && h.__file) {
+          const m = I(n, e), y = a(n), u = o.type.__file;
+          i.push({
+            instance: o,
+            line: y || ((k = (v = o.type.__loc) == null ? void 0 : v.start) == null ? void 0 : k.line),
+            textLine: m,
             depth: c,
-            distance: f,
-            isThirdParty: s(v)
+            distance: d,
+            isThirdParty: s(u)
           });
         }
-        if (!(r != null && r.parent))
+        if (!(o != null && o.parent))
           break;
-        r = r.parent, c++;
+        o = o.parent, c++;
       }
     }
     if (H(n) && n.__vue__) {
-      const r = n.__vue__, h = I(n, e), g = a(n), v = r.__file || ((_ = r.$options) == null ? void 0 : _.__file);
-      o.push({
-        instance: r,
-        line: g || ((T = (w = (b = r.$options) == null ? void 0 : b.__loc) == null ? void 0 : w.start) == null ? void 0 : T.line),
-        textLine: h,
+      const o = n.__vue__, m = I(n, e), y = a(n), u = o.__file || ((x = o.$options) == null ? void 0 : x.__file);
+      i.push({
+        instance: o,
+        line: y || ((E = (w = (b = o.$options) == null ? void 0 : b.__loc) == null ? void 0 : w.start) == null ? void 0 : E.line),
+        textLine: m,
         depth: c,
-        distance: f,
-        isThirdParty: s(v)
+        distance: d,
+        isThirdParty: s(u)
       });
     }
     n = n.parentElement, c++;
   }
-  if (o.length === 0)
-    return null;
-  o.sort((l, f) => l.depth !== f.depth ? l.depth - f.depth : l.isThirdParty !== f.isThirdParty ? l.isThirdParty ? 1 : -1 : (l.distance || 1 / 0) - (f.distance || 1 / 0));
-  const i = o.filter(
-    (l) => {
-      var f, r;
-      return l.instance.__file || ((f = l.instance.type) == null ? void 0 : f.__file) || ((r = l.instance.$options) == null ? void 0 : r.__file);
-    }
-  );
   if (i.length === 0)
     return null;
-  const p = i[0];
+  i.sort((r, d) => r.depth !== d.depth ? r.depth - d.depth : r.isThirdParty !== d.isThirdParty ? r.isThirdParty ? 1 : -1 : (r.distance || 1 / 0) - (d.distance || 1 / 0));
+  const l = i.filter(
+    (r) => {
+      var d, o;
+      return r.instance.__file || ((d = r.instance.type) == null ? void 0 : d.__file) || ((o = r.instance.$options) == null ? void 0 : o.__file);
+    }
+  );
+  if (l.length === 0)
+    return null;
+  const p = l[0];
   return {
     instance: p.instance,
     line: p.textLine || p.line
@@ -102,7 +102,7 @@ function M(t, e) {
 function j(t, e = "") {
   t.setAttribute("vue-click-to-component-target", e);
 }
-function E(t) {
+function T(t) {
   let e;
   t ? e = document.querySelectorAll(
     `[vue-click-to-component-target="${t}"]`
@@ -114,22 +114,22 @@ const z = (t) => {
   const e = document.createElement("a");
   e.href = t, e.click();
 };
-function N(t, e) {
+function M(t, e) {
   const n = localStorage.getItem(S);
   if (!n) {
-    window.__click2component_pending_file = t, k = null, R(!0);
+    window.__click2component_pending_file = t, g = null, R(!0);
     return;
   }
-  const o = C.find(
+  const i = L.find(
     (a) => a.name.toLowerCase() === n.toLowerCase()
   );
-  if (!o) {
+  if (!i) {
     console.warn(`不支持的编辑器: ${n}`);
     return;
   }
   const c = t.startsWith("/") ? t : `/${t}`;
-  let s = `${o.protocol}${c}`;
-  e && (o.name.toLowerCase() === "vscode" ? s += `:${e}` : o.name.toLowerCase() === "cursor" && (s += `:${e}:1`)), z(s);
+  let s = `${i.protocol}${c}`;
+  e && (i.name.toLowerCase() === "vscode" ? s += `:${e}` : i.name.toLowerCase() === "cursor" && (s += `:${e}:1`)), z(s);
 }
 const G = `
 <style type="text/css" key="vue-click-to-component-style">
@@ -190,11 +190,11 @@ const G = `
     max-width: 200px;
   }
 </style>`;
-let d = null, k = null, y = null;
+let f = null, g = null, _ = null;
 function U() {
-  if (d)
-    return d;
-  d = document.createElement("div"), Object.assign(d.style, {
+  if (f)
+    return f;
+  f = document.createElement("div"), Object.assign(f.style, {
     position: "fixed",
     top: "20px",
     right: "20px",
@@ -208,21 +208,21 @@ function U() {
     gap: "8px"
   });
   const t = document.createElement("div");
-  t.textContent = "选择编辑器", t.style.fontWeight = "bold", t.style.marginBottom = "8px", d && d.appendChild(t), C.forEach((n) => {
-    const o = document.createElement("button");
-    o.textContent = `${n.icon || ""} ${n.name}`, Object.assign(o.style, {
+  t.textContent = "选择编辑器", t.style.fontWeight = "bold", t.style.marginBottom = "8px", f && f.appendChild(t), L.forEach((n) => {
+    const i = document.createElement("button");
+    i.textContent = `${n.icon || ""} ${n.name}`, Object.assign(i.style, {
       padding: "6px 12px",
       border: "1px solid #ddd",
       borderRadius: "4px",
-      background: k === n.name.toLowerCase() ? "#e6f7ff" : "#fff",
+      background: g === n.name.toLowerCase() ? "#e6f7ff" : "#fff",
       cursor: "pointer",
       marginBottom: "8px"
-    }), o.addEventListener("click", () => {
-      k = n.name.toLowerCase(), d && C.forEach((c, s) => {
-        const a = d == null ? void 0 : d.children[s + 1];
+    }), i.addEventListener("click", () => {
+      g = n.name.toLowerCase(), f && L.forEach((c, s) => {
+        const a = f == null ? void 0 : f.children[s + 1];
         a.tagName === "BUTTON" && (a.style.background = "#fff");
-      }), o.style.background = "#e6f7ff";
-    }), d && d.appendChild(o);
+      }), i.style.background = "#e6f7ff";
+    }), f && f.appendChild(i);
   });
   const e = document.createElement("button");
   return e.textContent = "确定", Object.assign(e.style, {
@@ -234,76 +234,76 @@ function U() {
     cursor: "pointer",
     width: "100%"
   }), e.addEventListener("click", () => {
-    k && (localStorage.setItem(S, k), R(!1), C.find(
-      (o) => o.name.toLowerCase() === k
-    ) && window.__click2component_pending_file && (N(window.__click2component_pending_file), window.__click2component_pending_file = null));
-  }), d && (d.appendChild(e), document.body.appendChild(d)), d;
+    g && (localStorage.setItem(S, g), R(!1), L.find(
+      (i) => i.name.toLowerCase() === g
+    ) && window.__click2component_pending_file && (M(window.__click2component_pending_file), window.__click2component_pending_file = null));
+  }), f && (f.appendChild(e), document.body.appendChild(f)), f;
 }
 function R(t) {
   const e = U();
   e.style.display = t ? "flex" : "none";
 }
 function V(t) {
-  if (y || (y = document.createElement("div"), y.className = "click2component-path-tooltip", document.body.appendChild(y)), t) {
-    const e = t.split("/"), n = e.pop() || "", o = e.join("/");
-    y.innerHTML = `
-      <span class="path-middle">${o}/</span>
-      <span class="path-end">${n}</span>
-    `, y.style.display = "flex";
-  } else
-    y.style.display = "none";
+  if (_ && (_.remove(), _ = null), !t)
+    return;
+  _ = document.createElement("div"), _.className = "click2component-path-tooltip";
+  const e = t.split("/"), n = e.pop() || "", i = e.join("/");
+  _.innerHTML = `
+    <span class="path-middle">${i}/</span>
+    <span class="path-end">${n}</span>
+  `, document.body.appendChild(_);
 }
-function L() {
-  y && (y.style.display = "none");
+function C() {
+  _ && (_.remove(), _ = null);
 }
 function W(t, e) {
   var s, a;
   if (!e.enabled)
     return;
-  if (E("hover"), !(e.key === "Alt" || e.key === "Option" ? t.altKey : e.key === "Shift" ? t.shiftKey : e.key === "Control" ? t.ctrlKey : e.key === "Meta" ? t.metaKey : t.altKey)) {
-    document.body.removeAttribute("vue-click-to-component"), L();
+  if (T("hover"), !(e.key === "Alt" || e.key === "Option" ? t.altKey : e.key === "Shift" ? t.shiftKey : e.key === "Control" ? t.ctrlKey : e.key === "Meta" ? t.metaKey : t.altKey)) {
+    document.body.removeAttribute("vue-click-to-component"), C();
     return;
   }
   document.body.setAttribute("vue-click-to-component", "");
-  const o = t.target, c = M(o, t.clientY);
+  const i = t.target, c = N(i, t.clientY);
   if (c) {
-    const { instance: i } = c;
-    j(o, "hover");
-    const p = i.__file || ((s = i.type) == null ? void 0 : s.__file) || ((a = i.$options) == null ? void 0 : a.__file);
-    V(p);
+    const { instance: l } = c, p = l.__file || ((s = l.type) == null ? void 0 : s.__file) || ((a = l.$options) == null ? void 0 : a.__file);
+    j(i, "hover"), p && V(p);
   } else
-    L();
+    C();
 }
 window.__click2component_pending_file = null;
 function q(t, e) {
-  var p, m;
+  var p, h;
   if (!(e != null && e.enabled) || !(e.key === "Alt" || e.key === "Option" ? t.altKey : e.key === "Shift" ? t.shiftKey : e.key === "Control" ? t.ctrlKey : e.key === "Meta" ? t.metaKey : t.altKey) || (t == null ? void 0 : t.button) !== 0)
     return;
-  const o = t.target, c = M(o, t.clientY);
+  const i = t.target, c = N(i, t.clientY);
   if (!c)
     return;
   t.preventDefault(), t.stopPropagation(), t.stopImmediatePropagation();
-  const { instance: s, line: a } = c, i = s.__file || ((p = s.type) == null ? void 0 : p.__file) || ((m = s.$options) == null ? void 0 : m.__file);
-  i && (console.log("[Click2Component] 跳转到:", {
-    file: i,
-    line: a
-  }), N(i, a));
+  const { instance: s, line: a } = c, l = s.__file || ((p = s.type) == null ? void 0 : p.__file) || ((h = s.$options) == null ? void 0 : h.__file);
+  l && (console.log("[Click2Component] 跳转到:", {
+    file: l,
+    line: a || 1
+  }), M(l, a));
 }
 function Y(t, e = {}) {
   const n = { ...D, ...e };
   if (!n.enabled)
     return;
-  let o = !1;
+  let i = !1;
   const c = () => {
-    if (o)
+    if (i)
       return;
     document.head.insertAdjacentHTML("beforeend", G);
-    const s = (i) => q(i, n), a = (i) => W(i, n);
-    document.addEventListener("click", s, !0), document.addEventListener("mousemove", a, !0), window.addEventListener("keyup", (i) => {
-      (n.key === "Alt" || n.key === "Option" ? i.altKey : n.key === "Shift" ? i.shiftKey : n.key === "Control" ? i.ctrlKey : n.key === "Meta" ? i.metaKey : i.altKey) || (E(), document.body.removeAttribute("vue-click-to-component"));
+    const s = (l) => q(l, n), a = (l) => W(l, n);
+    document.addEventListener("click", s, !0), document.addEventListener("mousemove", a, !0), window.addEventListener("keydown", (l) => {
+      (n.key === "Alt" || n.key === "Option" ? l.altKey : n.key === "Shift" ? l.shiftKey : n.key === "Control" ? l.ctrlKey : n.key === "Meta" ? l.metaKey : l.altKey) || C();
+    }), window.addEventListener("keyup", () => {
+      T(), document.body.removeAttribute("vue-click-to-component"), C();
     }), window.addEventListener("blur", () => {
-      E(), document.body.removeAttribute("vue-click-to-component"), L();
-    }), o = !0;
+      T(), document.body.removeAttribute("vue-click-to-component"), C();
+    }), i = !0;
   };
   c(), t.mixin({
     mounted() {
