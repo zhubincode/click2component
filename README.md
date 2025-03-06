@@ -1,27 +1,35 @@
 # Click2Component
 
-一个 Vue.js 插件，让你能够快速定位并跳转到组件的源代码。支持 Vue 2 和 Vue 3。
+[English](#english) | [中文](#中文)
 
-## 特性
+## English
 
-- 🚀 快速定位：按住 Alt 键即可看到可跳转的组件
-- 🎯 精确跳转：自动定位到组件定义的确切行号
-- 💡 智能提示：左上角实时显示文件路径
-- ⚡️ 编辑器集成：支持 VS Code 和 Cursor
+### Introduction
 
-## 安装
+Click2Component is a Vue.js plugin that enables quick navigation to component source code, supporting both Vue 2 and Vue 3.
+
+### Features
+
+- Quick component location with Alt + Click
+- Precise line number detection
+- Smart file path hints
+- Third-party component support
+- Editor integration
+- User-friendly UI
+
+### Installation
 
 ```bash
-npm install click2component
+npm install click2component -D
 # 或
-yarn add click2component
+yarn add click2component -D
 ```
 
-## 使用
+### Usage
 
-### Vue 3
+#### Vue 3
 
-```js
+```javascript
 import { createApp } from "vue";
 import Click2Component from "click2component";
 
@@ -30,9 +38,103 @@ app.use(Click2Component);
 app.mount("#app");
 ```
 
-### Vue 2
+#### Vue 2
 
-```js
+```javascript
+import Vue from "vue";
+import Click2Component from "click2component";
+
+Vue.use(Click2Component);
+```
+
+### Configuration
+
+```javascript
+app.use(Click2Component, {
+  enabled: true, // Enable/disable the plugin
+  key: "Alt", // Trigger key (Alt/Shift/Control/Meta)
+  defaultEditor: "vscode", // Default editor
+});
+```
+
+### How to Use
+
+1. Hold the Alt key (or your configured key)
+2. Hover over a component to see its file path
+3. Click to open the component in your editor
+
+### Special Features
+
+- **Third-party Component Navigation**: Supports jumping to node_modules source code
+- **Precise Line Detection**: Accurately locates text content and elements
+- **File Path Display**: Shows component file path in top-left corner when hovering
+
+### Supported Editors
+
+- VS Code (`vscode://file`)
+- Cursor (`cursor://file`)
+
+### Important Notes
+
+- Source maps must be enabled in your project
+- Editor must support URL protocol opening
+
+### Debugging
+
+When navigating to components, the console will show:
+
+```javascript
+[Click2Component] Jump to: {
+  file: "path/to/component.vue",
+  line: 1
+}
+```
+
+### License
+
+MIT
+
+---
+
+## 中文
+
+### 简介
+
+Click2Component 是一个 Vue.js 插件，支持快速定位并跳转到组件源代码，同时支持 Vue 2 和 Vue 3。
+
+### 特性
+
+- Alt + 点击快速定位组件
+- 精确的行号检测
+- 智能文件路径提示
+- 支持第三方组件
+- 编辑器集成
+- 友好的用户界面
+
+### 安装
+
+```bash
+npm install click2component -D
+# 或
+yarn add click2component -D
+```
+
+### 使用方法
+
+#### Vue 3
+
+```javascript
+import { createApp } from "vue";
+import Click2Component from "click2component";
+
+const app = createApp(App);
+app.use(Click2Component);
+app.mount("#app");
+```
+
+#### Vue 2
+
+```javascript
 import Vue from "vue";
 import Click2Component from "click2component";
 
@@ -41,75 +143,47 @@ Vue.use(Click2Component);
 
 ### 配置选项
 
-```js
+```javascript
 app.use(Click2Component, {
-  enabled: true, // 是否启用插件
-  key: "Alt", // 触发键：'Alt'|'Shift'|'Control'|'Meta'
-  defaultEditor: "vscode", // 默认编辑器：'vscode'|'cursor'
+  enabled: true, // 启用/禁用插件
+  key: "Alt", // 触发键 (Alt/Shift/Control/Meta)
+  defaultEditor: "vscode", // 默认编辑器
 });
 ```
 
-## 使用方法
+### 使用说明
 
-1. 按住 Alt 键（或自定义的触发键）
-2. 鼠标移动到想要查看的组件上
-3. 左上角会显示组件文件路径
-4. 点击组件即可在编辑器中打开对应文件
+1. 按住 Alt 键（或您配置的按键）
+2. 鼠标悬停在组件上可以看到文件路径
+3. 点击即可在编辑器中打开组件
 
-## 特殊功能
+### 特殊功能
 
-### 第三方组件跳转
+- **第三方组件导航**：支持跳转到 node_modules 源代码
+- **精确行号检测**：准确定位文本内容和元素
+- **文件路径显示**：悬停时在左上角显示组件文件路径
 
-当点击第三方组件（如 Ant Design Vue 的组件）时，会自动跳转到你的代码中使用该组件的位置，而不是组件库的源码。
+### 支持的编辑器
 
-### 精确行号
+- VS Code (`vscode://file`)
+- Cursor (`cursor://file`)
 
-- 优先使用最接近点击位置的文本节点行号
-- 支持模板中的行号信息
-- 自动处理嵌套组件的行号定位
+### 重要说明
 
-### 文件路径显示
+- 项目中必须启用 Source Map
+- 编辑器必须支持 URL 协议打开
 
-- 左上角实时显示完整文件路径
-- 路径过长时自动省略中间部分
-- 始终显示完整的文件名
+### 调试信息
 
-## 编辑器支持
+跳转组件时，控制台会显示：
 
-### VS Code
-
-- 协议：`vscode://file`
-- 行号格式：`:行号`
-
-### Cursor
-
-- 协议：`cursor://file`
-- 行号格式：`:行号:1`
-
-## 注意事项
-
-1. 确保你的开发环境保留了源码位置信息（source map）
-2. 第一次使用时需要选择默认编辑器
-3. 编辑器需要支持通过 URL 协议打开文件
-
-## ps：如果每次都是打开新的编辑器，而不是当前编辑器跳转到对应文件
-确保在 VS Code 的设置中启用了“在当前窗口打开文件”的选项。这样可以避免每次点击链接时都打开新窗口。
-
-打开 VS Code 设置 (Ctrl + , 或 Cmd + ,).
-搜索 window.openFilesInNewWindow。
-将设置值改为 off，这将确保文件在当前窗口打开。
-
-## 调试信息
-
-当成功跳转时，控制台会输出以下信息：
-
-```js
+```javascript
 [Click2Component] 跳转到: {
-  file: "源文件路径",
-  line: 行号
+  file: "path/to/component.vue",
+  line: 1
 }
 ```
 
-## 许可证
+### 许可证
 
 MIT
