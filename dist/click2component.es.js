@@ -1,6 +1,7 @@
 const L = [
   { name: "VS Code", protocol: "vscode://file", icon: "📝" },
-  { name: "Cursor", protocol: "cursor://file", icon: "✨" }
+  { name: "Cursor", protocol: "cursor://file", icon: "✨" },
+  { name: "Trae", protocol: "trae://file", icon: "🚀" }
 ], S = "click2component_editor", D = {
   enabled: !0,
   key: "Alt",

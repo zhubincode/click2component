@@ -55,6 +55,7 @@ interface EditorConfig {
 const SUPPORTED_EDITORS: EditorConfig[] = [
   { name: "VS Code", protocol: "vscode://file", icon: "📝" },
   { name: "Cursor", protocol: "cursor://file", icon: "✨" },
+  { name: "Trae", protocol: "trae://file", icon: "🚀" },
 ];
 
 const EDITOR_STORAGE_KEY = "click2component_editor";

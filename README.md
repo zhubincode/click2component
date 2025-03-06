@@ -73,6 +73,7 @@ app.use(Click2Component, {
 
 - VS Code (`vscode://file`)
 - Cursor (`cursor://file`)
+- Trae (`trae://file`)
 
 ### Important Notes
 
@@ -167,6 +168,7 @@ app.use(Click2Component, {
 
 - VS Code (`vscode://file`)
 - Cursor (`cursor://file`)
+- Trae (`trae://file`)
 
 ### 重要说明
 

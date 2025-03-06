@@ -1,6 +1,6 @@
 {
   "name": "click2component",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "description": "A development tool for locating Vue components by clicking elements in the browser",
   "main": "dist/click2component.umd.js",
   "module": "dist/click2component.es.js",
@@ -36,12 +36,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/click2component.git"
+    "url": "git+https://github.com/zhubincode/click2component.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/click2component/issues"
+    "url": "https://github.com/zhubincode/click2component/issues"
   },
-  "homepage": "https://github.com/yourusername/click2component#readme",
+  "homepage": "https://github.com/zhubincode/click2component#readme",
   "publishConfig": {
     "access": "public"
   }
