@@ -91,6 +91,32 @@ When navigating to components, the console will show:
 }
 ```
 
+### Vue CLI 4.x Support
+
+Click2Component now automatically detects the project root path in Vue CLI 4.x projects. No additional configuration is needed! The plugin will:
+
+1. Automatically detect the webpack environment
+2. Find the correct project root path from Vue CLI configuration
+3. Resolve component paths correctly for editor navigation
+
+Just install and use as normal:
+
+```javascript
+// Vue 3
+import { createApp } from "vue";
+import Click2Component from "click2component";
+
+const app = createApp(App);
+app.use(Click2Component);
+app.mount("#app");
+
+// Vue 2
+import Vue from "vue";
+import Click2Component from "click2component";
+
+Vue.use(Click2Component);
+```
+
 ### License
 
 MIT
@@ -184,6 +210,32 @@ app.use(Click2Component, {
   file: "path/to/component.vue",
   line: 1
 }
+```
+
+### Vue CLI 4.x 支持
+
+Click2Component 现在可以自动检测 Vue CLI 4.x 项目的根路径。无需额外配置！插件将：
+
+1. 自动检测 webpack 环境
+2. 从 Vue CLI 配置中找到正确的项目根路径
+3. 正确解析组件路径以供编辑器导航
+
+只需正常安装和使用即可：
+
+```javascript
+// Vue 3
+import { createApp } from "vue";
+import Click2Component from "click2component";
+
+const app = createApp(App);
+app.use(Click2Component);
+app.mount("#app");
+
+// Vue 2
+import Vue from "vue";
+import Click2Component from "click2component";
+
+Vue.use(Click2Component);
 ```
 
 ### 许可证

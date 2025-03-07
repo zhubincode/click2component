@@ -1,9 +1,34 @@
 import { App, ComponentPublicInstance } from "vue";
 
+// Declare global webpack types for Vue CLI compatibility
+declare global {
+  interface Window {
+    __click2component_pending_file: string | null;
+    __WEBPACK_CONFIG__?: {
+      context?: string;
+      output?: {
+        publicPath?: string;
+      };
+    };
+    webpackHotUpdate?: any; // 用于检测是否在 webpack 环境中
+    __VUE_CLI_CONTEXT__?: string; // Vue CLI 上下文路径
+    __vue_app_config__?: any;
+    __webpack_public_path__?: string;
+    process?: {
+      env?: {
+        BASE_URL?: string;
+        VUE_APP_PROJECT_ROOT?: string; // 添加项目根路径环境变量
+        HOME?: string; // 添加用户主目录环境变量
+      };
+    };
+  }
+}
+
 interface Options {
   enabled?: boolean;
   key?: string;
   defaultEditor?: string;
+  autoDetectRoot?: boolean;
 }
 
 interface ComponentLocation {
@@ -64,6 +89,7 @@ const defaultOptions: Options = {
   enabled: true,
   key: "Alt",
   defaultEditor: "vscode",
+  autoDetectRoot: true,
 };
 
 function isVue2Element(el: Element): el is Vue2Element {
@@ -267,6 +293,135 @@ const openWithProtocol = (href: string) => {
   link.click();
 };
 
+function getProjectRoot(): string | null {
+  try {
+    // 1. 检查是否在 webpack 环境中
+    const isWebpack = typeof window.webpackHotUpdate !== "undefined";
+
+    if (isWebpack) {
+      // 2. 尝试从 webpack 配置中获取上下文路径（这是文件系统的实际路径）
+      if (window.__WEBPACK_CONFIG__?.context) {
+        console.log(
+          "[Click2Component] 使用 webpack context:",
+          window.__WEBPACK_CONFIG__.context
+        );
+        return window.__WEBPACK_CONFIG__.context;
+      }
+
+      // 3. 尝试从环境变量获取项目根路径
+      const projectRoot = process?.env?.VUE_APP_PROJECT_ROOT;
+      if (projectRoot) {
+        console.log(
+          "[Click2Component] 使用环境变量中的项目根路径:",
+          projectRoot
+        );
+        return projectRoot;
+      }
+
+      // 4. 尝试从源码映射中获取项目根路径
+      try {
+        const sourceMapElement = document.querySelector(
+          'script[src*=".js.map"]'
+        );
+        if (sourceMapElement) {
+          const mapUrl = (sourceMapElement as HTMLScriptElement).src;
+          const projectPath = mapUrl.split("/src/")[0];
+          if (projectPath && !projectPath.startsWith("http")) {
+            console.log(
+              "[Click2Component] 使用源码映射推断的项目根路径:",
+              projectPath
+            );
+            return projectPath;
+          }
+        }
+      } catch (e) {
+        console.warn("[Click2Component] 无法从源码映射获取项目路径:", e);
+      }
+
+      console.warn(
+        "[Click2Component] 无法获取文件系统路径，请在 vue.config.js 中配置"
+      );
+      return null;
+    }
+
+    return null;
+  } catch (error) {
+    console.warn("[Click2Component] 自动检测项目根目录失败:", error);
+    return null;
+  }
+}
+
+// 添加路径处理工具函数
+function joinPaths(...paths: string[]): string {
+  return paths
+    .map((path, index) => {
+      // 移除开头和结尾的斜杠
+      path = path.replace(/^\/+|\/+$/g, "");
+      // 对于第一个部分，如果原始路径以斜杠开头，则保留
+      if (index === 0 && paths[0].startsWith("/")) {
+        path = "/" + path;
+      }
+      return path;
+    })
+    .filter((path) => path.length > 0)
+    .join("/");
+}
+
+function resolveComponentPath(sourceCodeLocation: string): string {
+  // 如果是绝对路径，直接返回
+  if (
+    sourceCodeLocation.startsWith("/") &&
+    !sourceCodeLocation.startsWith("~/")
+  ) {
+    return sourceCodeLocation;
+  }
+
+  // 获取项目根目录
+  const projectRoot = getProjectRoot();
+
+  // 处理以 ~ 开头的路径
+  if (sourceCodeLocation.startsWith("~")) {
+    const home = process?.env?.HOME;
+    if (home) {
+      // 替换 ~ 为用户主目录
+      const absolutePath = sourceCodeLocation.replace(/^~/, home);
+      console.log("[Click2Component] 解析后的绝对路径:", absolutePath);
+      return absolutePath;
+    }
+  }
+
+  if (!projectRoot) {
+    console.warn("[Click2Component] 无法检测到项目根目录");
+    return sourceCodeLocation;
+  }
+
+  // 处理相对路径
+  let normalizedPath = sourceCodeLocation;
+
+  // 移除 ./ 前缀（如果存在）
+  if (normalizedPath.startsWith("./")) {
+    normalizedPath = normalizedPath.slice(2);
+  }
+
+  // 移除 src/ 前缀（如果存在）
+  normalizedPath = normalizedPath.replace(/^src\//, "");
+
+  // 如果路径中包含 node_modules，尝试从项目根目录解析
+  if (normalizedPath.includes("node_modules")) {
+    return joinPaths(projectRoot, normalizedPath);
+  }
+
+  // 对于项目组件，尝试在 src 目录下查找
+  const srcPath = joinPaths(projectRoot, "src", normalizedPath);
+  console.log("[Click2Component] 尝试在 src 目录下查找:", srcPath);
+
+  // 如果不在 src 目录下，尝试在项目根目录下查找
+  const rootPath = joinPaths(projectRoot, normalizedPath);
+  console.log("[Click2Component] 尝试在项目根目录下查找:", rootPath);
+
+  return srcPath;
+}
+
 function openEditor(sourceCodeLocation: string, line?: number) {
   const savedEditor = localStorage.getItem(EDITOR_STORAGE_KEY);
   if (!savedEditor) {
@@ -285,10 +440,10 @@ function openEditor(sourceCodeLocation: string, line?: number) {
     return;
   }
 
-  // 确保路径是绝对路径
-  const absolutePath = sourceCodeLocation.startsWith("/")
-    ? sourceCodeLocation
-    : `/${sourceCodeLocation}`;
+  // 解析组件路径
+  const absolutePath = resolveComponentPath(sourceCodeLocation);
+  console.log("[Click2Component] 原始路径:", sourceCodeLocation);
+  console.log("[Click2Component] 解析后的路径:", absolutePath);
 
   let fileUrl = `${editorConfig.protocol}${absolutePath}`;
 
