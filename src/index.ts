@@ -445,7 +445,16 @@ function openEditor(sourceCodeLocation: string, line?: number) {
   console.log("[Click2Component] 原始路径:", sourceCodeLocation);
   console.log("[Click2Component] 解析后的路径:", absolutePath);
 
-  let fileUrl = `${editorConfig.protocol}${absolutePath}`;
+  // 修复Windows路径格式问题
+  let formattedPath = absolutePath;
+
+  // 检测是否是Windows路径（以驱动器号开头，如D:）
+  if (/^[A-Za-z]:/.test(formattedPath)) {
+    // 确保路径使用正确的分隔符，添加前导斜杠
+    formattedPath = "/" + formattedPath.replace(/\\/g, "/");
+  }
+
+  let fileUrl = `${editorConfig.protocol}${formattedPath}`;
 
   // 添加行号（根据不同编辑器使用不同格式）
   if (line) {

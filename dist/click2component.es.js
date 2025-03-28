@@ -112,11 +112,11 @@ function K(t) {
     n.removeAttribute("vue-click-to-component-target");
   });
 }
-const U = (t) => {
+const z = (t) => {
   const e = document.createElement("a");
   e.href = t, e.click();
 };
-function z() {
+function U() {
   var t, e;
   try {
     if (typeof window.webpackHotUpdate < "u") {
@@ -162,7 +162,7 @@ function G(t) {
   var a;
   if (t.startsWith("/") && !t.startsWith("~/"))
     return t;
-  const e = z();
+  const e = U();
   if (t.startsWith("~")) {
     const c = (a = process == null ? void 0 : process.env) == null ? void 0 : a.HOME;
     if (c) {
@@ -187,7 +187,7 @@ function j(t, e) {
     return;
   }
   const o = P.find(
-    (c) => c.name.toLowerCase() === n.toLowerCase()
+    (l) => l.name.toLowerCase() === n.toLowerCase()
   );
   if (!o) {
     console.warn(`不支持的编辑器: ${n}`);
@@ -195,8 +195,10 @@ function j(t, e) {
   }
   const r = G(t);
   console.log("[Click2Component] 原始路径:", t), console.log("[Click2Component] 解析后的路径:", r);
-  let a = `${o.protocol}${r}`;
-  e && (o.name.toLowerCase() === "vscode" ? a += `:${e}` : o.name.toLowerCase() === "cursor" && (a += `:${e}:1`)), U(a);
+  let a = r;
+  /^[A-Za-z]:/.test(a) && (a = "/" + a.replace(/\\/g, "/"));
+  let c = `${o.protocol}${a}`;
+  e && (o.name.toLowerCase() === "vscode" ? c += `:${e}` : o.name.toLowerCase() === "cursor" && (c += `:${e}:1`)), z(c);
 }
 const V = `
 <style type="text/css" key="vue-click-to-component-style">
@@ -380,9 +382,9 @@ function X(t, e = {}) {
     setTimeout(r, 0);
   });
 }
-const Q = {
+const Z = {
   install: X
 };
 export {
-  Q as default
+  Z as default
 };
