@@ -742,10 +742,22 @@ function handleClick(e: MouseEvent, options: Options) {
   }
 }
 
-function install(app: App, options: Options = {}) {
+// 修改类型定义
+type VueInstance = any; // Vue 2
+type VueApp = App; // Vue 3
+
+interface InstallFunction {
+  (Vue: VueInstance, options?: Options): void; // Vue 2
+  (app: VueApp, options?: Options): void; // Vue 3
+}
+
+const install: InstallFunction = (app: any, options: Options = {}) => {
   const finalOptions = { ...defaultOptions, ...options };
 
   if (!finalOptions.enabled) return;
+
+  // 检测是否为 Vue 2
+  const isVue2 = !!(app && app.prototype && app.prototype.$isServer);
 
   let initialized = false;
   const initialize = () => {
@@ -792,20 +804,50 @@ function install(app: App, options: Options = {}) {
     initialized = true;
   };
 
-  initialize();
-
-  app.mixin({
-    mounted() {
-      initialize();
-    },
-  });
-
-  if (app.config.globalProperties.$router) {
-    app.config.globalProperties.$router.afterEach(() => {
-      setTimeout(initialize, 0);
+  if (isVue2) {
+    // Vue 2 方式
+    app.mixin({
+      mounted() {
+        initialize();
+      },
     });
+
+    // 更安全的路由检测方式
+    try {
+      const router = app.prototype?.$router || (window as any).router;
+      if (router && typeof router.afterEach === "function") {
+        router.afterEach(() => {
+          setTimeout(initialize, 0);
+        });
+      }
+    } catch (e) {
+      console.warn(
+        "[Click2Component] Vue Router not found or not initialized yet"
+      );
+    }
+  } else {
+    // Vue 3 方式
+    app.mixin({
+      mounted() {
+        initialize();
+      },
+    });
+
+    // 更安全的路由检测方式
+    try {
+      const router = app.config?.globalProperties?.$router;
+      if (router && typeof router.afterEach === "function") {
+        router.afterEach(() => {
+          setTimeout(initialize, 0);
+        });
+      }
+    } catch (e) {
+      console.warn(
+        "[Click2Component] Vue Router not found or not initialized yet"
+      );
+    }
   }
-}
+};
 
 export default {
   install,
