@@ -1,6 +1,6 @@
 {
   "name": "click2component",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "description": "A development tool for locating Vue components by clicking elements in the browser",
   "main": "dist/click2component.umd.js",
   "module": "dist/click2component.es.js",
