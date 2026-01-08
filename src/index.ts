@@ -29,6 +29,7 @@ interface Options {
   key?: string;
   defaultEditor?: string;
   autoDetectRoot?: boolean;
+  editors?: EditorConfig[]; // 自定义编辑器列表，会与默认列表合并
 }
 
 interface ComponentLocation {
@@ -77,12 +78,16 @@ interface EditorConfig {
   icon?: string;
 }
 
-const SUPPORTED_EDITORS: EditorConfig[] = [
+const DEFAULT_EDITORS: EditorConfig[] = [
   { name: "VS Code", protocol: "vscode://file", icon: "📝" },
   { name: "Cursor", protocol: "cursor://file", icon: "✨" },
   { name: "Trae", protocol: "trae://file", icon: "🚀" },
   { name: "Windsurf", protocol: "windsurf://file", icon: "🌊" },
+  { name: "Kiro", protocol: "kiro://file", icon: "🤖" },
 ];
+
+// 运行时的编辑器列表，会在 install 时根据用户配置合并
+let SUPPORTED_EDITORS: EditorConfig[] = [...DEFAULT_EDITORS];
 
 const EDITOR_STORAGE_KEY = "click2component_editor";
 
@@ -755,6 +760,20 @@ const install: InstallFunction = (app: any, options: Options = {}) => {
   const finalOptions = { ...defaultOptions, ...options };
 
   if (!finalOptions.enabled) return;
+
+  // 合并用户自定义编辑器
+  if (options.editors && options.editors.length > 0) {
+    const customEditorNames = new Set(
+      options.editors.map((e) => e.name.toLowerCase())
+    );
+    // 过滤掉与自定义编辑器同名的默认编辑器，然后追加自定义编辑器
+    SUPPORTED_EDITORS = [
+      ...DEFAULT_EDITORS.filter(
+        (e) => !customEditorNames.has(e.name.toLowerCase())
+      ),
+      ...options.editors,
+    ];
+  }
 
   // 检测是否为 Vue 2
   const isVue2 = !!(app && app.prototype && app.prototype.$isServer);

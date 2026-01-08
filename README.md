@@ -54,6 +54,10 @@ app.use(Click2Component, {
   enabled: true, // Enable/disable the plugin
   key: "Alt", // Trigger key (Alt/Shift/Control/Meta)
   defaultEditor: "vscode", // Default editor
+  editors: [
+    // Custom editors (will merge with defaults)
+    { name: "My Editor", protocol: "myeditor://file", icon: "🎯" }
+  ]
 });
 ```
 
@@ -74,6 +78,8 @@ app.use(Click2Component, {
 - VS Code (`vscode://file`)
 - Cursor (`cursor://file`)
 - Trae (`trae://file`)
+- Windsurf (`windsurf://file`)
+- Kiro (`kiro://file`)
 
 ### Important Notes
 
@@ -175,6 +181,10 @@ app.use(Click2Component, {
   enabled: true, // 启用/禁用插件
   key: "Alt", // 触发键 (Alt/Shift/Control/Meta)
   defaultEditor: "vscode", // 默认编辑器
+  editors: [
+    // 自定义编辑器（会与默认列表合并）
+    { name: "My Editor", protocol: "myeditor://file", icon: "🎯" }
+  ]
 });
 ```
 
@@ -195,6 +205,8 @@ app.use(Click2Component, {
 - VS Code (`vscode://file`)
 - Cursor (`cursor://file`)
 - Trae (`trae://file`)
+- Windsurf (`windsurf://file`)
+- Kiro (`kiro://file`)
 
 ### 重要说明
 
