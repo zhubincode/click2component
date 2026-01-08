@@ -1,3 +1,11 @@
+# 简化步骤
+```
+yarn build
+npm pack
+npm publish
+```
+
+
 # npm 发包完整指南
 
 > 一份实用的 npm 包发布流程文档，覆盖从初始化到自动化发布的全过程。
