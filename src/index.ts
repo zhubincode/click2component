@@ -106,46 +106,55 @@ function isVue3Element(el: Element): el is Vue3Element {
   return "__vueParentComponent" in el;
 }
 
-function findTextNodeLine(node: Element, clickY: number): number | undefined {
-  // 检查节点本身是否有行号信息
-  const sourceLine = (node as any)?.__source?.start?.line;
-  const vueSourceLine = (node as any)?.__vnode?.loc?.start?.line;
+function getElementLine(el: Element): number | undefined {
+  // 尝试多种方式获取行号
+  const vnode = (el as any).__vnode;
+  const source = (el as any).__source;
 
-  // 如果是文本节点的父节点，检查其子节点
-  if (node.childNodes.length > 0) {
-    let closestLine: number | undefined;
-    let minDistance = Infinity;
+  // 优先级：__vnode.loc > __source > data-source-line 属性
+  if (vnode?.loc?.start?.line) {
+    return vnode.loc.start.line;
+  }
+  if (source?.start?.line) {
+    return source.start.line;
+  }
+  // 某些构建工具会添加 data 属性
+  const dataLine = el.getAttribute?.("data-source-line");
+  if (dataLine) {
+    return parseInt(dataLine, 10);
+  }
+  return undefined;
+}
 
-    // 遍历所有子节点
-    for (const child of Array.from(node.childNodes)) {
-      // 获取节点的位置信息
-      const rect = (child as any).getBoundingClientRect?.();
-      if (rect) {
-        const distance = Math.abs(rect.top + rect.height / 2 - clickY);
-        let textLine: number | undefined;
+function findClosestElementWithLine(
+  el: Element,
+  clickY: number
+): number | undefined {
+  // 从当前元素开始，找最近的有行号信息的元素
+  let closestLine: number | undefined;
+  let minDistance = Infinity;
 
-        if (child.nodeType === Node.TEXT_NODE && child.textContent?.trim()) {
-          // 文本节点
-          textLine = (child as any)?.__source?.start?.line;
-        } else if (child.nodeType === Node.ELEMENT_NODE) {
-          // 元素节点
-          textLine = (child as any)?.__vnode?.loc?.start?.line;
-        }
+  // 检查当前元素
+  const currentLine = getElementLine(el);
+  if (currentLine) {
+    return currentLine;
+  }
 
-        // 更新最近的行号
-        if (textLine && distance < minDistance) {
-          minDistance = distance;
-          closestLine = textLine;
-        }
+  // 遍历子元素，找距离点击位置最近的有行号的元素
+  const children = el.querySelectorAll("*");
+  for (const child of Array.from(children)) {
+    const line = getElementLine(child);
+    if (line) {
+      const rect = child.getBoundingClientRect();
+      const distance = Math.abs(rect.top + rect.height / 2 - clickY);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestLine = line;
       }
-    }
-
-    if (closestLine !== undefined) {
-      return closestLine;
     }
   }
 
-  return vueSourceLine || sourceLine;
+  return closestLine;
 }
 
 function findComponentInstance(
@@ -158,7 +167,6 @@ function findComponentInstance(
     instance: ComponentInstance;
     line?: number;
     depth: number;
-    textLine?: number;
     distance?: number;
     isThirdParty?: boolean;
   }[] = [];
@@ -171,18 +179,25 @@ function findComponentInstance(
   };
 
   // 获取组件在模板中的位置
-  const findTemplateLocation = (node: Element): number | undefined => {
-    // 检查元素本身的位置信息
-    const loc = (node as any)?.__vnode?.loc?.start?.line;
-    if (loc) return loc;
+  const getComponentLine = (
+    instance: any,
+    node: Element
+  ): number | undefined => {
+    // 1. 尝试从组件类型获取 __loc
+    const typeLoc = instance?.type?.__loc?.start?.line;
+    if (typeLoc) return typeLoc;
 
-    // 检查组件的渲染函数位置
-    const renderLoc = (node as any)?.__vnode?.componentOptions?.Ctor?.options
-      ?.__file;
-    if (renderLoc) {
-      const match = renderLoc.match(/:(\d+)$/);
-      if (match) return parseInt(match[1], 10);
-    }
+    // 2. 尝试从 $options 获取
+    const optionsLoc = instance?.$options?.__loc?.start?.line;
+    if (optionsLoc) return optionsLoc;
+
+    // 3. 尝试从当前 DOM 元素获取
+    const elementLine = getElementLine(node);
+    if (elementLine) return elementLine;
+
+    // 4. 尝试从子元素中找最近的行号
+    const closestLine = findClosestElementWithLine(node, clickY);
+    if (closestLine) return closestLine;
 
     return undefined;
   };
@@ -196,14 +211,12 @@ function findComponentInstance(
       let parent = currentEl.__vueParentComponent;
       while (parent) {
         if (parent?.type?.__file) {
-          const textLine = findTextNodeLine(currentEl, clickY);
-          const templateLine = findTemplateLocation(currentEl);
           const file = parent.type.__file;
+          const line = getComponentLine(parent, currentEl);
 
           instances.push({
             instance: parent as unknown as ComponentInstance,
-            line: templateLine || parent.type.__loc?.start?.line,
-            textLine: textLine,
+            line: line,
             depth: depth,
             distance: distance,
             isThirdParty: isThirdPartyComponent(file),
@@ -218,14 +231,12 @@ function findComponentInstance(
     // Vue 2
     if (isVue2Element(currentEl) && currentEl.__vue__) {
       const instance = currentEl.__vue__;
-      const textLine = findTextNodeLine(currentEl, clickY);
-      const templateLine = findTemplateLocation(currentEl);
       const file = instance.__file || instance.$options?.__file;
+      const line = getComponentLine(instance, currentEl);
 
       instances.push({
         instance,
-        line: templateLine || instance.$options?.__loc?.start?.line,
-        textLine: textLine,
+        line: line,
         depth: depth,
         distance: distance,
         isThirdParty: isThirdPartyComponent(file),
@@ -265,11 +276,11 @@ function findComponentInstance(
     return null;
   }
 
-  // 返回最内层的有效实例，优先使用文本行号
+  // 返回最内层的有效实例
   const result = validInstances[0];
   return {
     instance: result.instance,
-    line: result.textLine || result.line, // 优先使用文本行号
+    line: result.line,
   };
 }
 
@@ -462,12 +473,16 @@ function openEditor(sourceCodeLocation: string, line?: number) {
 
   let fileUrl = `${editorConfig.protocol}${formattedPath}`;
 
-  // 添加行号（根据不同编辑器使用不同格式）
+  // 添加行号（大多数编辑器都支持 :line 或 :line:column 格式）
   if (line) {
-    if (editorConfig.name.toLowerCase() === "vscode") {
+    const editorName = editorConfig.name.toLowerCase();
+    // VS Code、Trae、Windsurf、Kiro 都支持 :line 格式
+    // Cursor 需要 :line:column 格式
+    if (editorName === "cursor") {
+      fileUrl += `:${line}:1`;
+    } else {
+      // 默认使用 :line 格式，适用于大多数编辑器
       fileUrl += `:${line}`;
-    } else if (editorConfig.name.toLowerCase() === "cursor") {
-      fileUrl += `:${line}:1`; // Cursor需要列号，我们默认使用1
     }
   }
 
